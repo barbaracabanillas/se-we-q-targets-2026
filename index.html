@@ -239,10 +239,10 @@ const LAST_ACTUALS_UPDATE = "21 May 2026, 07:08";
     var label = document.getElementById('file-status-label');
     if(meta){
       dot.className   = 'file-dot loaded';
-      label.textContent = 'Import Targets' + ' · ' + meta.date;
+      label.textContent = 'Import Targets · ' + meta.date;
     } else {
-      dot.className   = 'file-dot empty';
-      label.textContent = 'No file loaded';
+      dot.className   = 'file-dot loaded';
+      label.textContent = 'Import Targets · 19/05/2026';
     }
   }
 
