@@ -94,7 +94,7 @@ tr.total-row td{background:#f0f9f4;font-weight:700;border-top:2px solid var(--g)
   <div class="chips">
     <span class="chip" id="chip-country">All countries</span>
     <span class="chip" id="chip-cities">131 cities</span>
-    <span class="chip green" id="chip-target">Preliminary</span>
+    <span class="chip green" id="chip-target">Annual Budget</span>
     <span class="chip" id="chip-compare">No comparison</span>
 
     <label class="file-status" id="file-status-btn" for="file-input" title="Importar archivo actualizado">
@@ -135,9 +135,9 @@ tr.total-row td{background:#f0f9f4;font-weight:700;border-top:2px solid var(--g)
   <div class="fb-group">
     <span class="fb-label">Target</span>
     <div class="pills" id="pills-target">
-      <button class="pill active" data-v="Preliminary">Preliminary</button>
-      <button class="pill" data-v="Q1">Q1</button>
-      <button class="pill" data-v="Q2">Q2</button>
+      <button class="pill active" data-v="Preliminary">Annual Budget</button>
+      <button class="pill" data-v="Q1">Jan Rebase</button>
+      <button class="pill" data-v="Q2">Q2 update</button>
       <button class="pill" data-v="Actuals">Actuals</button>
     </div>
   </div>
@@ -145,10 +145,10 @@ tr.total-row td{background:#f0f9f4;font-weight:700;border-top:2px solid var(--g)
   <div class="fb-group">
     <span class="fb-label">Compare with</span>
     <div class="pills" id="pills-compare">
-      <button class="pill compare-active" data-v="">Sin comparar</button>
-      <button class="pill" data-v="Preliminary">Preliminary</button>
-      <button class="pill" data-v="Q1">Q1</button>
-      <button class="pill" data-v="Q2">Q2</button>
+      <button class="pill compare-active" data-v="">No comparison</button>
+      <button class="pill" data-v="Preliminary">Annual Budget</button>
+      <button class="pill" data-v="Q1">Jan Rebase</button>
+      <button class="pill" data-v="Q2">Q2 update</button>
       <button class="pill" data-v="Actuals">Actuals</button>
     </div>
   </div>
@@ -174,6 +174,7 @@ tr.total-row td{background:#f0f9f4;font-weight:700;border-top:2px solid var(--g)
     <div class="kpi-card" id="kpi-ASP"><div class="kpi-name">ASP</div><div id="kpi-ASP-val" class="kpi-val"></div><div id="kpi-ASP-cmp" class="kpi-compare"></div></div>
     <div class="kpi-card" id="kpi-NetRate"><div class="kpi-name">Net Rate</div><div id="kpi-NetRate-val" class="kpi-val"></div><div id="kpi-NetRate-cmp" class="kpi-compare"></div></div>
     <div class="kpi-card" id="kpi-EBITDA"><div class="kpi-name">EBITDA</div><div id="kpi-EBITDA-val" class="kpi-val"></div><div id="kpi-EBITDA-cmp" class="kpi-compare"></div></div>
+    <div style="display:flex;align-items:center;margin-left:auto;padding-left:8px;"><span id="kpi-month-label" style="font-size:11px;font-weight:600;color:#9ca3af;white-space:nowrap;"></span></div>
   </div>
 
   <!-- Charts -->
@@ -510,7 +511,8 @@ function updateChips() {
   let cnt = country ? CITY_COUNTS[country] : 134;
   let cityTxt = city ? city : (country ? `${CITY_COUNTS[country]} cities` : getActiveCityCount());
   document.getElementById('chip-cities').textContent = city || cityTxt;
-  document.getElementById('chip-target').textContent = target;
+  const TARGET_LABELS = {'Preliminary':'Annual Budget','Q1':'Jan Rebase','Q2':'Q2 update','Actuals':'Actuals'};
+  document.getElementById('chip-target').textContent = TARGET_LABELS[target] || target;
   document.getElementById('chip-compare').textContent = compare ? `vs ${compare}` : 'No comparison';
 }
 
@@ -854,6 +856,12 @@ function renderKPIs() {
   let {target,compare,metrics} = state;
   let da = getSelectionData(target).data;
 
+  // Use last month with data: CURRENT_MONTH if valid, else Dec (11)
+  const lastM = (CURRENT_MONTH >= 0) ? CURRENT_MONTH : 11;
+  const monthLabel = MONTHS[lastM] + (CURRENT_MONTH >= 0 ? ' (Proj.)' : '');
+  const mlEl = document.getElementById('kpi-month-label');
+  if(mlEl) mlEl.textContent = monthLabel;
+
   METRICS.forEach(m=>{
     let card = document.getElementById('kpi-'+m);
     card.classList.toggle('hidden', !metrics.has(m));
@@ -861,14 +869,14 @@ function renderKPIs() {
 
     let valEl = document.getElementById('kpi-'+m+'-val');
     let cmpEl = document.getElementById('kpi-'+m+'-cmp');
-    let va = annualKPI(da, m);
+    let va = periodicKPI(da, m, [lastM]);
 
     if(!compare) {
       valEl.textContent = fmtMetric(m, va);
       cmpEl.innerHTML = '';
     } else {
       let db = getSelectionData(compare).data;
-      let vb = annualKPI(db, m);
+      let vb = periodicKPI(db, m, [lastM]);
       let {val,pct,pos} = fmtDelta(m,va,vb);
       valEl.textContent = '';
       cmpEl.innerHTML = `
